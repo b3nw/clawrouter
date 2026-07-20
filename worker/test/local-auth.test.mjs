@@ -126,9 +126,48 @@ test("local login marks the cookie Secure behind a TLS-terminating proxy", async
   const env = fixture();
   const request = loginRequest(adminKeyMaterial, { ip: "198.51.100.12" });
   request.headers.set("x-forwarded-proto", "https");
+  request.headers.set("origin", "https://localhost:8787");
   const response = await localLogin(request, env);
   assert.equal(response.status, 200);
   assert.match(response.headers.get("set-cookie"), /; Secure$/);
+});
+
+test("local login succeeds behind a TLS-terminating reverse proxy (CSRF origin mismatch)", async () => {
+  const env = fixture();
+  const publicHost = "clawrouter-dev.ext.ben.io";
+  const request = new Request("http://localhost:8787/v1/session/login", {
+    method: "POST",
+    body: JSON.stringify({ token: adminKeyMaterial }),
+    headers: {
+      "content-type": "application/json",
+      "origin": `https://${publicHost}`,
+      "host": publicHost,
+      "x-forwarded-proto": "https",
+      "x-forwarded-host": publicHost,
+      "cf-connecting-ip": "198.51.100.13",
+    },
+  });
+  const response = await localLogin(request, env);
+  assert.equal(response.status, 200, "proxy-aware sameOrigin should match");
+  assert.match(response.headers.get("set-cookie"), /; Secure$/);
+});
+
+test("local login succeeds with Host header alone (no X-Forwarded-Host)", async () => {
+  const env = fixture();
+  const publicHost = "router.example.com";
+  const request = new Request("http://127.0.0.1:8787/v1/session/login", {
+    method: "POST",
+    body: JSON.stringify({ token: adminKeyMaterial }),
+    headers: {
+      "content-type": "application/json",
+      "origin": `https://${publicHost}`,
+      "host": publicHost,
+      "x-forwarded-proto": "https",
+      "cf-connecting-ip": "198.51.100.14",
+    },
+  });
+  const response = await localLogin(request, env);
+  assert.equal(response.status, 200, "should reconstruct origin from Host + X-Forwarded-Proto");
 });
 
 test("local sessions respect disabled, deleted, or demoted user records and expiry", async () => {
