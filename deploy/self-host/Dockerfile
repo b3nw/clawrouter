@@ -16,6 +16,9 @@ RUN pnpm provider:compile -- --output worker/generated/provider-snapshot.json \
 
 FROM node:24-slim AS runtime
 
+RUN apt-get update && apt-get install -y --no-install-recommends ca-certificates \
+  && rm -rf /var/lib/apt/lists/*
+
 ENV NODE_ENV=production \
   WRANGLER_SEND_METRICS=false
 
