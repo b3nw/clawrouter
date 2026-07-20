@@ -107,10 +107,22 @@ export async function authorizeAdmin(request: Request, env: Env): Promise<Access
 }
 
 export function sameOrigin(request: Request): boolean {
-  const url = new URL(request.url);
   const origin = request.headers.get("origin");
   const fetchSite = request.headers.get("sec-fetch-site");
-  return origin === url.origin || (!origin && (!fetchSite || fetchSite === "same-origin" || fetchSite === "none"));
+  if (!origin && (!fetchSite || fetchSite === "same-origin" || fetchSite === "none")) return true;
+  if (!origin) return false;
+  const effectiveOrigin = publicOrigin(request);
+  return origin === effectiveOrigin;
+}
+
+/** Reconstruct the public-facing origin accounting for reverse-proxy headers. */
+function publicOrigin(request: Request): string {
+  const url = new URL(request.url);
+  const proto = request.headers.get("x-forwarded-proto")?.split(",")[0].trim().toLowerCase() || url.protocol.replace(":", "");
+  const host = request.headers.get("x-forwarded-host")?.split(",")[0].trim() || request.headers.get("host") || url.host;
+  const defaultPort = proto === "https" ? "443" : "80";
+  const hostWithoutDefaultPort = host.replace(new RegExp(`:${defaultPort}$`), "");
+  return `${proto}://${hostWithoutDefaultPort}`;
 }
 
 export function publicSession(session: AccessSession): Omit<AccessSession, "contentRetentionDisabled"> {
