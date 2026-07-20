@@ -19,6 +19,7 @@ baseUrls:
 routing:
   nativePrefixes: [clawrouter-xai, xai]
   modelPrefixes: [xai/]
+  modelPassthrough: true
 adapter:
   request: openai
   response: openai

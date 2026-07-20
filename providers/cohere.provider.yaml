@@ -19,6 +19,7 @@ baseUrls:
 routing:
   nativePrefixes: [clawrouter-cohere, cohere]
   modelPrefixes: [cohere/]
+  modelPassthrough: true
 adapter:
   request: cohere
   response: cohere

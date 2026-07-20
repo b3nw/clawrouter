@@ -8,7 +8,7 @@ export interface ProviderSnapshot {
 export interface CompiledProvider {
   id: string; display_name: string; status: string; class: string; service_platform: string; service_kind: string;
   config_keys: string[]; optional_config_keys: string[]; auth: { schemes: AuthScheme[]; authorization: AuthorizationConfig | null; refresh: RefreshConfig | null; grantTransports: Record<string, { baseUrl?: string | null; endpointPaths: Record<string, string>; headers: Record<string, string> }> };
-  auth_schemes: string[]; base_urls: Record<string, string>; routing: { nativePrefixes: string[]; modelPrefixes: string[]; baseUrlParam: string | null; serviceParam: string | null };
+  auth_schemes: string[]; base_urls: Record<string, string>; routing: { nativePrefixes: string[]; modelPrefixes: string[]; modelPassthrough: boolean; baseUrlParam: string | null; serviceParam: string | null };
   native_prefixes: string[]; adapter: { request: string | null; response: string | null; stream: string | null; error: string | null; passthroughHeaders: string[]; injectHeaders: Record<string, string>; injectQuery: Record<string, string>; requestTransforms: { renameFields: Array<{ from: string; to: string; paths: string[]; upstreams: string[]; upstreamConfig: string | null }> } };
   capabilities: Array<{ id: string; endpoint: string; methods: string[] }>;
   endpoints: CompiledEndpoint[]; models: CompiledModel[]; billing: { meter: string | null; dimensions: string[]; counters: Array<{ name: string; source: string; unit?: string | null }> }; meter: string | null;

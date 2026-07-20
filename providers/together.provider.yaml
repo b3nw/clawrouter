@@ -19,6 +19,7 @@ baseUrls:
 routing:
   nativePrefixes: [clawrouter-together, together]
   modelPrefixes: [together/]
+  modelPassthrough: true
 adapter:
   request: openai
   response: openai

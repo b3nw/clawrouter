@@ -19,6 +19,7 @@ baseUrls:
 routing:
   nativePrefixes: [clawrouter-mistral, mistral]
   modelPrefixes: [mistral/]
+  modelPassthrough: true
 adapter:
   request: openai
   response: openai

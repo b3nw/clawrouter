@@ -19,6 +19,7 @@ baseUrls:
 routing:
   nativePrefixes: [clawrouter-perplexity, perplexity]
   modelPrefixes: [perplexity/]
+  modelPassthrough: true
 adapter:
   request: openai
   response: openai

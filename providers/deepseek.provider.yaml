@@ -19,6 +19,7 @@ baseUrls:
 routing:
   nativePrefixes: [clawrouter-deepseek, deepseek]
   modelPrefixes: [deepseek/]
+  modelPassthrough: true
 adapter:
   request: openai
   response: openai
