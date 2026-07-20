@@ -19,6 +19,7 @@ baseUrls:
 routing:
   nativePrefixes: [clawrouter-fireworks, fireworks]
   modelPrefixes: [fireworks/]
+  modelPassthrough: true
 adapter:
   request: openai
   response: openai

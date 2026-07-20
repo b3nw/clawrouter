@@ -18,6 +18,7 @@ baseUrls:
 routing:
   nativePrefixes: [clawrouter-google, google, gemini]
   modelPrefixes: [google/, gemini/]
+  modelPassthrough: true
 adapter:
   request: google_gemini
   response: google_gemini

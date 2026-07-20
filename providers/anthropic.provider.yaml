@@ -18,6 +18,7 @@ baseUrls:
 routing:
   nativePrefixes: [clawrouter-anthropic, anthropic]
   modelPrefixes: [anthropic/]
+  modelPassthrough: true
 adapter:
   request: anthropic
   response: anthropic

@@ -22,6 +22,7 @@ baseUrls:
 routing:
   nativePrefixes: [clawrouter-local, local-openai, local]
   modelPrefixes: [local/]
+  modelPassthrough: true
 adapter:
   request: openai
   response: openai

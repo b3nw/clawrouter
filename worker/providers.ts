@@ -58,20 +58,20 @@ export function modelRoute(model: string): { provider: CompiledProvider; model: 
     return provider && entry ? { provider, model: entry } : null;
   }
   for (const provider of snapshot.providers) {
+    if (!provider.routing.modelPassthrough) continue;
     const prefix = provider.routing.modelPrefixes.find((candidate) => model.startsWith(candidate));
     if (!prefix) continue;
     const upstream = model.slice(prefix.length);
     if (!upstream) continue;
     const template = provider.models[0];
-    const inheritsTemplatePricing = provider.id === "local-openai";
     return {
       provider,
       model: {
         id: model,
         upstream,
         capabilities: template?.capabilities ?? provider.capabilities.map((item) => item.id),
-        pricing_ref: inheritsTemplatePricing ? template?.pricing_ref ?? null : null,
-        pricing: inheritsTemplatePricing ? template?.pricing ?? null : null,
+        pricing_ref: null,
+        pricing: null,
       },
     };
   }

@@ -43,6 +43,7 @@ baseUrls:
 routing:
   nativePrefixes: [clawrouter-openai, openai]
   modelPrefixes: [openai/]
+  modelPassthrough: true
   baseUrlParam: base_url
 adapter:
   request: openai

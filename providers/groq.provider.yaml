@@ -19,6 +19,7 @@ baseUrls:
 routing:
   nativePrefixes: [clawrouter-groq, groq]
   modelPrefixes: [groq/]
+  modelPassthrough: true
 adapter:
   request: openai
   response: openai

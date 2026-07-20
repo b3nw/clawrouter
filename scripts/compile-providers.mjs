@@ -81,6 +81,7 @@ function compileProvider(manifest, ids) {
   const routing = {
     nativePrefixes: manifest.routing?.nativePrefixes ?? [],
     modelPrefixes: manifest.routing?.modelPrefixes ?? [],
+    modelPassthrough: manifest.routing?.modelPassthrough ?? false,
     baseUrlParam: manifest.routing?.baseUrlParam ?? null,
     serviceParam: manifest.routing?.serviceParam ?? null,
   };
