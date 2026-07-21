@@ -31,6 +31,14 @@ export async function discoverUpstreamModels(env: Env, executableProviderIds: Se
     passthroughProviders.map((provider) => fetchProviderModels(provider, env, grants)),
   );
 
+  // Also discover from non-OpenAI providers with custom discovery
+  const customDiscoveryProviders = snapshot.providers.filter(
+    (p) => p.routing.modelPassthrough && p.class !== "openai_compatible" && executableProviderIds.has(p.id),
+  );
+  const customResults = await Promise.allSettled(
+    customDiscoveryProviders.map((provider) => fetchCustomProviderModels(provider, env)),
+  );
+
   const discovered: Array<{ id: string; object: string; owned_by: string; display_name: string; capabilities: string[] }> = [];
   const staticIds = new Set(Object.keys(snapshot.model_index));
 
@@ -38,24 +46,28 @@ export async function discoverUpstreamModels(env: Env, executableProviderIds: Se
     const result = results[i];
     if (result.status !== "fulfilled" || !result.value) continue;
     const provider = passthroughProviders[i];
-    const prefix = provider.routing.modelPrefixes[0] ?? `${provider.id}/`;
-    const template = provider.models[0];
-    const capabilities = template?.capabilities ?? provider.capabilities.map((c) => c.id);
+    appendDiscovered(provider, result.value, staticIds, discovered);
+  }
 
-    for (const model of result.value) {
-      const prefixedId = model.id.startsWith(prefix) ? model.id : `${prefix}${model.id}`;
-      if (staticIds.has(prefixedId)) continue;
-      discovered.push({
-        id: prefixedId,
-        object: "model",
-        owned_by: provider.id,
-        display_name: `${provider.display_name} · ${model.id}`,
-        capabilities,
-      });
-    }
+  for (let i = 0; i < customDiscoveryProviders.length; i++) {
+    const result = customResults[i];
+    if (result.status !== "fulfilled" || !result.value) continue;
+    const provider = customDiscoveryProviders[i];
+    appendDiscovered(provider, result.value, staticIds, discovered);
   }
 
   return applyModelFilters(discovered, env);
+}
+
+function appendDiscovered(provider: CompiledProvider, models: UpstreamModel[], staticIds: Set<string>, out: Array<{ id: string; object: string; owned_by: string; display_name: string; capabilities: string[] }>) {
+  const prefix = provider.routing.modelPrefixes[0] ?? `${provider.id}/`;
+  const template = provider.models[0];
+  const capabilities = template?.capabilities ?? provider.capabilities.map((c) => c.id);
+  for (const model of models) {
+    const prefixedId = model.id.startsWith(prefix) ? model.id : `${prefix}${model.id}`;
+    if (staticIds.has(prefixedId)) continue;
+    out.push({ id: prefixedId, object: "model", owned_by: provider.id, display_name: `${provider.display_name} · ${model.id}`, capabilities });
+  }
 }
 
 async function fetchProviderModels(provider: CompiledProvider, env: Env, grants: Array<{ key: string; grant: UpstreamGrant }>): Promise<UpstreamModel[] | null> {
@@ -86,6 +98,43 @@ async function fetchProviderModels(provider: CompiledProvider, env: Env, grants:
     const models: UpstreamModel[] = body.data
       .filter((m) => m.id && typeof m.id === "string")
       .map((m) => ({ id: m.id, owned_by: m.owned_by ?? provider.id }));
+
+    await writeCache(provider.id, models, env);
+    return models;
+  } catch {
+    return null;
+  }
+}
+
+/** Handle non-OpenAI providers with custom list endpoints (e.g. Google Gemini). */
+async function fetchCustomProviderModels(provider: CompiledProvider, env: Env): Promise<UpstreamModel[] | null> {
+  const cached = await readCache(provider.id, env);
+  if (cached) return cached;
+
+  if (provider.id === "google-gemini") return fetchGoogleGeminiModels(provider, env);
+  return null;
+}
+
+async function fetchGoogleGeminiModels(provider: CompiledProvider, env: Env): Promise<UpstreamModel[] | null> {
+  const apiKey = resolveAuth(provider, env, []);
+  if (!apiKey) return null;
+
+  try {
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), FETCH_TIMEOUT_MS);
+    const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models?key=${apiKey}`, {
+      headers: { accept: "application/json" },
+      signal: controller.signal,
+    });
+    clearTimeout(timeout);
+
+    if (!response.ok) return null;
+    const body = await response.json<{ models?: Array<{ name: string; displayName?: string }> }>();
+    if (!Array.isArray(body.models)) return null;
+
+    const models: UpstreamModel[] = body.models
+      .filter((m) => m.name && typeof m.name === "string")
+      .map((m) => ({ id: m.name.replace("models/", ""), owned_by: "google-gemini" }));
 
     await writeCache(provider.id, models, env);
     return models;
