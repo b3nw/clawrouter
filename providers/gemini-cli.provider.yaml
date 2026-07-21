@@ -24,7 +24,7 @@ baseUrls:
 routing:
   nativePrefixes: [clawrouter-gemini-cli, gemini-cli]
   modelPrefixes: [gemini-cli/]
-  modelPassthrough: true
+  modelPassthrough: false
 adapter:
   request: google_gemini
   response: google_gemini
@@ -42,7 +42,37 @@ endpoints:
     streaming: sse
     timeoutMs: 600000
 models:
-  entries: []
+  entries:
+    - id: gemini-cli/gemini-2.5-pro
+      upstream: gemini-2.5-pro
+      capabilities: [llm.generate]
+    - id: gemini-cli/gemini-2.5-flash
+      upstream: gemini-2.5-flash
+      capabilities: [llm.generate]
+    - id: gemini-cli/gemini-2.5-flash-lite
+      upstream: gemini-2.5-flash-lite
+      capabilities: [llm.generate]
+    - id: gemini-cli/gemini-3-pro-preview
+      upstream: gemini-3-pro-preview
+      capabilities: [llm.generate]
+    - id: gemini-cli/gemini-3.1-pro-preview
+      upstream: gemini-3.1-pro-preview
+      capabilities: [llm.generate]
+    - id: gemini-cli/gemini-3-flash-preview
+      upstream: gemini-3-flash-preview
+      capabilities: [llm.generate]
+    - id: gemini-cli/gemini-3-flash
+      upstream: gemini-3-flash
+      capabilities: [llm.generate]
+    - id: gemini-cli/gemini-3.5-flash
+      upstream: gemini-3.5-flash
+      capabilities: [llm.generate]
+    - id: gemini-cli/gemini-3.1-flash-lite
+      upstream: gemini-3.1-flash-lite
+      capabilities: [llm.generate]
+    - id: gemini-cli/gemini-3.1-flash-lite-preview
+      upstream: gemini-3.1-flash-lite-preview
+      capabilities: [llm.generate]
 billing:
   meter: clawrouter.tokens
   dimensions: [provider, model, key, service, subject]
