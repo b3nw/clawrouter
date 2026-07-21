@@ -5,6 +5,7 @@ import { FUSION_MODEL_ID } from "./fusion";
 import { authenticateProxyKey } from "./proxy";
 import { endpointForPath, modelRoute, providerReadinessForPolicies, snapshot, type Readiness } from "./providers";
 import type { AccessPolicyEntry, AccessSession, AuthorizedIdentity, CompiledProvider, Env } from "./types";
+import { discoverUpstreamModels } from "./upstream-models";
 import { errorResponse, privateJson, sha256Hex } from "./utils";
 
 export async function sessionResponse(request: Request, env: Env): Promise<Response> {
@@ -52,6 +53,12 @@ export async function modelsResponse(request: Request, env: Env): Promise<Respon
     const capabilities = executableCapabilities(provider, model.capabilities, allowed.get(provider.id) ?? []);
     return capabilities.length ? [{ id: model.id, object: "model", owned_by: provider.id, display_name: `${provider.display_name} · ${model.id}`, capabilities }] : [];
   }));
+  const executableProviderIds = new Set(allowed.keys());
+  const upstream = await discoverUpstreamModels(env, executableProviderIds);
+  const staticIds = new Set(data.map((m) => m.id));
+  for (const model of upstream) {
+    if (!staticIds.has(model.id)) data.push(model);
+  }
   const fusion = rows.find((row) => row.provider === "clawrouter");
   if (fusion?.allowed && fusion.readiness.executable) data.unshift({
     id: FUSION_MODEL_ID,
