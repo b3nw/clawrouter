@@ -1,0 +1,48 @@
+schema: clawrouter.service-provider.v1
+id: gemini-cli
+displayName: Google Gemini CLI
+status: experimental
+class: rest_json
+service:
+  platform: google
+  kind: model_provider
+  upstreamService: code_assist
+  configKeys: [GEMINI_CLI_API_KEY]
+auth:
+  schemes:
+    - type: bearer
+      header: Authorization
+      format: "Bearer ${secret}"
+      secretKind: oauth
+      required: false
+  authorization:
+    authorizeUrl: https://accounts.google.com/o/oauth2/auth
+    tokenUrl: https://oauth2.googleapis.com/token
+    grantKind: oauth
+baseUrls:
+  default: https://cloudcode-pa.googleapis.com/v1internal
+routing:
+  nativePrefixes: [clawrouter-gemini-cli, gemini-cli]
+  modelPrefixes: [gemini-cli/]
+  modelPassthrough: true
+adapter:
+  request: google_gemini
+  response: google_gemini
+  stream: google_sse
+  error: google_error
+capabilities:
+  - id: llm.generate
+    endpoint: stream_generate_content
+    methods: [POST]
+endpoints:
+  stream_generate_content:
+    path: /:streamGenerateContent
+    requestFormat: google.generate_content
+    responseFormat: google.stream_generate_content
+    streaming: sse
+    timeoutMs: 600000
+models:
+  entries: []
+billing:
+  meter: clawrouter.tokens
+  dimensions: [provider, model, key, service, subject]
