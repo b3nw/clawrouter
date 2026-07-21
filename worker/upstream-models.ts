@@ -103,7 +103,7 @@ function resolveBaseUrl(provider: CompiledProvider, env: Env): string | null {
     const envKey = templateMatch[1].toUpperCase().replace(/-/g, "_");
     const value = env[envKey];
     if (typeof value !== "string" || !value.trim()) return null;
-    url = url.replace(templateMatch[0], value.trim());
+    url = url.replace(templateMatch[0], stripQuotes(value.trim()));
   }
   return url.replace(/\/$/, "");
 }
@@ -120,7 +120,7 @@ function resolveAuth(provider: CompiledProvider, env: Env, grants: Array<{ key: 
   // 1. Env-based API key
   for (const key of provider.config_keys) {
     const value = env[key];
-    if (typeof value === "string" && value.trim()) return value.trim();
+    if (typeof value === "string" && value.trim()) return stripQuotes(value.trim());
   }
   // 2. Grant-based auth (api_key or oauth with accessToken)
   const providerGrants = grants.filter(
@@ -131,6 +131,13 @@ function resolveAuth(provider: CompiledProvider, env: Env, grants: Array<{ key: 
     if (token) return token;
   }
   return null;
+}
+
+function stripQuotes(value: string): string {
+  if ((value.startsWith('"') && value.endsWith('"')) || (value.startsWith("'") && value.endsWith("'"))) {
+    return value.slice(1, -1);
+  }
+  return value;
 }
 
 function firstCredential(values: Record<string, string> | undefined): string | null {
