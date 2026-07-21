@@ -5,7 +5,7 @@ import { FUSION_MODEL_ID } from "./fusion";
 import { authenticateProxyKey } from "./proxy";
 import { endpointForPath, modelRoute, providerReadinessForPolicies, snapshot, type Readiness } from "./providers";
 import type { AccessPolicyEntry, AccessSession, AuthorizedIdentity, CompiledProvider, Env } from "./types";
-import { discoverUpstreamModels } from "./upstream-models";
+import { discoverUpstreamModels, buildModelFilter } from "./upstream-models";
 import { errorResponse, privateJson, sha256Hex } from "./utils";
 
 export async function sessionResponse(request: Request, env: Env): Promise<Response> {
@@ -49,9 +49,12 @@ export async function modelsResponse(request: Request, env: Env): Promise<Respon
     })));
     return privateJson({ data, first_id: data[0]?.id ?? null, has_more: false, last_id: data.at(-1)?.id ?? null });
   }
+  const modelFilter = buildModelFilter(env);
   const data = snapshot.providers.flatMap((provider) => provider.models.flatMap((model) => {
     const capabilities = executableCapabilities(provider, model.capabilities, allowed.get(provider.id) ?? []);
-    return capabilities.length ? [{ id: model.id, object: "model", owned_by: provider.id, display_name: `${provider.display_name} · ${model.id}`, capabilities }] : [];
+    if (!capabilities.length) return [];
+    const entry = { id: model.id, object: "model", owned_by: provider.id, display_name: `${provider.display_name} · ${model.id}`, capabilities };
+    return modelFilter(entry) ? [entry] : [];
   }));
   const executableProviderIds = new Set(allowed.keys());
   const upstream = await discoverUpstreamModels(env, executableProviderIds);

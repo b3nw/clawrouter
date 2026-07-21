@@ -1,0 +1,43 @@
+schema: clawrouter.service-provider.v1
+id: ollama-cloud
+displayName: Ollama Cloud
+status: stable
+class: openai_compatible
+service:
+  platform: ollama
+  kind: model_provider
+  configKeys: [OLLAMA_CLOUD_API_KEY]
+auth:
+  schemes:
+    - type: bearer
+      header: Authorization
+      format: "Bearer ${secret}"
+      secretKind: api_key
+      required: false
+baseUrls:
+  default: https://ollama.com
+routing:
+  nativePrefixes: [clawrouter-ollama-cloud, ollama-cloud]
+  modelPrefixes: [ollama-cloud/]
+  modelPassthrough: true
+adapter:
+  request: openai
+  response: openai
+  stream: openai_sse
+  error: openai_error
+capabilities:
+  - id: llm.chat
+    endpoint: chat_completions
+    methods: [POST]
+endpoints:
+  chat_completions:
+    path: /v1/chat/completions
+    requestFormat: openai.chat_completions
+    responseFormat: openai.chat_completions
+    streaming: sse
+    timeoutMs: 600000
+models:
+  entries: []
+billing:
+  meter: clawrouter.tokens
+  dimensions: [provider, model, key, service, subject]
