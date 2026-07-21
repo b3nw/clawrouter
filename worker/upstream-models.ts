@@ -147,30 +147,38 @@ function firstCredential(values: Record<string, string> | undefined): string | n
 /**
  * Build a reusable filter function from IGNORE_MODELS_* / WHITELIST_MODELS_* env vars.
  * Applies to any model with { id, owned_by } — works for both static and dynamic models.
+ *
+ * Env key lookup uses known provider IDs from the snapshot to construct expected keys,
+ * since workerd bindings are not enumerable via Object.entries().
  */
 export function buildModelFilter(env: Env): (model: { id: string; owned_by: string }) => boolean {
   const ignorePatterns = new Map<string, string[]>();
   const whitelistPatterns = new Map<string, string[]>();
 
-  for (const [key, value] of Object.entries(env)) {
-    if (typeof value !== "string" || !value.trim()) continue;
-    const upperKey = key.toUpperCase();
-    if (upperKey.startsWith("IGNORE_MODELS_")) {
-      const provider = upperKey.slice("IGNORE_MODELS_".length).toLowerCase().replace(/_/g, "-");
-      ignorePatterns.set(provider, value.split(",").map((p) => p.trim()).filter(Boolean));
-    } else if (upperKey.startsWith("WHITELIST_MODELS_")) {
-      const provider = upperKey.slice("WHITELIST_MODELS_".length).toLowerCase().replace(/_/g, "-");
-      whitelistPatterns.set(provider, value.split(",").map((p) => p.trim()).filter(Boolean));
+  for (const provider of snapshot.providers) {
+    const envSuffix = provider.id.toUpperCase().replace(/-/g, "_");
+    const ignoreKey = `IGNORE_MODELS_${envSuffix}`;
+    const whitelistKey = `WHITELIST_MODELS_${envSuffix}`;
+
+    const ignoreValue = env[ignoreKey];
+    if (typeof ignoreValue === "string" && ignoreValue.trim()) {
+      ignorePatterns.set(provider.id, stripQuotes(ignoreValue).split(",").map((p) => p.trim()).filter(Boolean));
+    }
+    const whitelistValue = env[whitelistKey];
+    if (typeof whitelistValue === "string" && whitelistValue.trim()) {
+      whitelistPatterns.set(provider.id, stripQuotes(whitelistValue).split(",").map((p) => p.trim()).filter(Boolean));
     }
   }
 
   if (!ignorePatterns.size && !whitelistPatterns.size) return () => true;
 
   return (model) => {
+    // Match against full ID and unprefixed ID (e.g. "nvidia-nim/model" → "model")
+    const unprefixed = model.id.includes("/") ? model.id.slice(model.id.indexOf("/") + 1) : model.id;
     const whitelist = whitelistPatterns.get(model.owned_by);
-    if (whitelist?.length) return whitelist.some((pattern) => globMatch(model.id, pattern));
+    if (whitelist?.length) return whitelist.some((pattern) => globMatch(model.id, pattern) || globMatch(unprefixed, pattern));
     const ignore = ignorePatterns.get(model.owned_by);
-    if (ignore?.length) return !ignore.some((pattern) => globMatch(model.id, pattern));
+    if (ignore?.length) return !ignore.some((pattern) => globMatch(model.id, pattern) || globMatch(unprefixed, pattern));
     return true;
   };
 }
